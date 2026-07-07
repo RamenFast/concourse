@@ -37,6 +37,14 @@ when resolved, never deleted.*
     agents should pass explicit verbs through `run`, and hole #3's fix removes the trap.
     Exit propagation itself is verified verbatim (surveyor unknown-verb: 1 == 1). *(behavior)*
 
+11. **Nexus hasn't chosen her voice.** intercom ships with `lessac` (neutral announcer);
+    the registry ladder lists `libritts-r` / `alba` as candidates — the pick is hers, per
+    the model-agency precedent. *(voice wave, deferred to Nexus)*
+12. **whisper Vulkan stays off on purpose** (CPU rtf ≈ 0.25 is plenty; the VRAM law stays
+    llama↔sd only) — revisit only if long recordings make CPU feel slow. `--mic` capture
+    relies on the `timeout` coreutil wrapping pw-record; a native duration flag would be
+    cleaner. *(voice wave)*
+
 ## Resolved
 
 - ~~wisp binary missing while STATION-MAP said shipped~~ → rebuilt 2026-07-07 (`cargo build

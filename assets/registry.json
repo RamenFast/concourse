@@ -450,6 +450,46 @@
       ]
     },
     {
+      "id": "intercom",
+      "name": "Intercom",
+      "glyph": "🎙",
+      "kind": "tool",
+      "district": "Workshop",
+      "line": "The station's two-way voice — say (piper TTS) · hear (whisper.cpp STT), CPU one-shots",
+      "path": "~/Dev/ClaudeWorkspace/intercom",
+      "bin": "~/.local/bin/intercom",
+      "probe": {
+        "kind": "cmd",
+        "argv": [
+          "~/.local/bin/intercom",
+          "status",
+          "--json"
+        ],
+        "timeout_ms": 5000
+      },
+      "remark_keys": [
+        "tts_ready",
+        "stt_ready"
+      ],
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/intercom"
+      },
+      "signpost": "~/Dev/ClaudeWorkspace/intercom/README.md",
+      "skills": {
+        "claude": "intercom",
+        "hermes": "station/intercom"
+      },
+      "verbs": [
+        "say",
+        "hear",
+        "voices",
+        "ears",
+        "status",
+        "schema"
+      ]
+    },
+    {
       "id": "hermes-bridge",
       "name": "Hermes Bridge",
       "glyph": "🌉",
@@ -696,6 +736,10 @@
     {
       "claude": "mmx-cli",
       "hermes": "mmx-cli"
+    },
+    {
+      "claude": "intercom",
+      "hermes": "station/intercom"
     }
   ]
 }

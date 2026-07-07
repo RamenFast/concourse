@@ -32,3 +32,4 @@ Each ask names where it landed.*
 | 23 | Security: high-trust, fortress, full sudo, escalate for clarity | `~/AGENTS.md` §5 |
 | 24 | (Standing, from the station) one pattern every tool speaks; registry claims carry their check | envelope/exit codes dogfooded · `doctor` re-checks live |
 | 25 | (Standing, house rule 7) essential CLI actions get buttons | ⟳ REFRESH stone · per-card open/probe · cabinet/skills/asks/doctor buttons |
+| 26 | Integrate more CLI-JSON between Nexus (Hermes skill) and the local AI setup — diffusion, models, STT, TTS — with communication between them (2026-07-07) | **intercom** (say/hear, Rust) + piper & whisper.cpp engines · voice-models.json registry · pipelines in `intercom schema` + both skills (`station/intercom` ↔ `intercom`) · registered on the board |
