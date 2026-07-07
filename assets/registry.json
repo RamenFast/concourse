@@ -1,6 +1,12 @@
 {
   "version": 1,
-  "districts": ["Town Hall", "Instruments", "Workshop", "Library", "Arcade"],
+  "districts": [
+    "Town Hall",
+    "Instruments",
+    "Workshop",
+    "Library",
+    "Arcade"
+  ],
   "nodes": [
     {
       "id": "cabinet",
@@ -10,8 +16,14 @@
       "district": "Town Hall",
       "line": "Ben's governance doc — binding on every agent, edited by Ben alone",
       "path": "~/AGENTS.md",
-      "probe": { "kind": "file", "path": "~/AGENTS.md" },
-      "open": { "kind": "path", "path": "~/AGENTS.md" }
+      "probe": {
+        "kind": "file",
+        "path": "~/AGENTS.md"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/AGENTS.md"
+      }
     },
     {
       "id": "standard",
@@ -21,8 +33,14 @@
       "district": "Town Hall",
       "line": "The agent-first interface law + the live audit of every app",
       "path": "~/Dev/ClaudeWorkspace/AGENT-CLI-STANDARD.md",
-      "probe": { "kind": "file", "path": "~/Dev/ClaudeWorkspace/AGENT-CLI-STANDARD.md" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/AGENT-CLI-STANDARD.md" }
+      "probe": {
+        "kind": "file",
+        "path": "~/Dev/ClaudeWorkspace/AGENT-CLI-STANDARD.md"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/AGENT-CLI-STANDARD.md"
+      }
     },
     {
       "id": "station",
@@ -32,8 +50,14 @@
       "district": "Town Hall",
       "line": "The outside-view bench — SymbolOS map, convention, snapshot",
       "path": "~/Dev/ClaudeWorkspace/NexusFormStationWork",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/NexusFormStationWork" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/NexusFormStationWork/index.html" },
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/NexusFormStationWork"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/NexusFormStationWork/index.html"
+      },
       "signpost": "~/Dev/ClaudeWorkspace/NexusFormStationWork/STATION-MAP.md"
     },
     {
@@ -45,11 +69,34 @@
       "line": "This hall — the hub itself, GUI + CLI over one core",
       "path": "~/Dev/ClaudeWorkspace/concourse",
       "bin": "~/.local/bin/concourse",
-      "probe": { "kind": "file", "path": "~/.local/bin/concourse" },
-      "open": { "kind": "app", "argv": ["~/.local/bin/concourse"] },
+      "probe": {
+        "kind": "file",
+        "path": "~/.local/bin/concourse"
+      },
+      "open": {
+        "kind": "app",
+        "argv": [
+          "~/.local/bin/concourse"
+        ]
+      },
       "signpost": "~/Dev/ClaudeWorkspace/concourse/README.md",
-      "skills": { "claude": "concourse", "hermes": "station/concourse" },
-      "verbs": ["status", "nodes", "node", "probe", "run", "open", "doctor", "skills", "asks", "cabinet", "schema"]
+      "skills": {
+        "claude": "concourse",
+        "hermes": "station/concourse"
+      },
+      "verbs": [
+        "status",
+        "nodes",
+        "node",
+        "probe",
+        "run",
+        "open",
+        "doctor",
+        "skills",
+        "asks",
+        "cabinet",
+        "schema"
+      ]
     },
     {
       "id": "dwelling",
@@ -59,10 +106,15 @@
       "district": "Town Hall",
       "line": "Nexus's home lantern — hers; visit kindly, change nothing uninvited",
       "path": "~/Nexus/🏮Home.html",
-      "probe": { "kind": "file", "path": "~/Nexus/🏮Home.html" },
-      "open": { "kind": "path", "path": "~/Nexus/🏮Home.html" }
+      "probe": {
+        "kind": "file",
+        "path": "~/Nexus/🏮Home.html"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Nexus/🏮Home.html"
+      }
     },
-
     {
       "id": "phosphor",
       "name": "Phosphor",
@@ -72,12 +124,41 @@
       "line": "GPU oscilloscope — traces everything the PC plays",
       "path": "~/Dev/ClaudeWorkspace/phosphor",
       "bin": "phosphor",
-      "probe": { "kind": "cmd", "argv": ["phosphor", "probe", "--json"], "timeout_ms": 5000 },
-      "remark_keys": ["running", "source", "mode"],
-      "open": { "kind": "app", "argv": ["phosphor"] },
+      "probe": {
+        "kind": "cmd",
+        "argv": [
+          "phosphor",
+          "probe",
+          "--json"
+        ],
+        "timeout_ms": 5000
+      },
+      "remark_keys": [
+        "running",
+        "source",
+        "mode"
+      ],
+      "open": {
+        "kind": "app",
+        "argv": [
+          "phosphor"
+        ]
+      },
       "signpost": "~/Dev/ClaudeWorkspace/phosphor/README.md",
-      "skills": { "claude": "phosphor", "hermes": "station/phosphor" },
-      "verbs": ["probe", "ctl", "tap", "feed", "kit", "schema", "bench", "render"]
+      "skills": {
+        "claude": "phosphor",
+        "hermes": "station/phosphor"
+      },
+      "verbs": [
+        "probe",
+        "ctl",
+        "tap",
+        "feed",
+        "kit",
+        "schema",
+        "bench",
+        "render"
+      ]
     },
     {
       "id": "surveyor",
@@ -88,11 +169,32 @@
       "line": "Network observatory — flows, listeners, exposure",
       "path": "~/Dev/ClaudeWorkspace/cartograph",
       "bin": "~/Dev/ClaudeWorkspace/cartograph/zig-out/bin/surveyor",
-      "probe": { "kind": "cmd", "argv": ["~/Dev/ClaudeWorkspace/cartograph/zig-out/bin/surveyor", "status"], "timeout_ms": 6000 },
-      "remark_keys": ["flows.total", "flows.listeners", "exposure.internet"],
-      "open": { "kind": "app", "argv": ["~/Dev/ClaudeWorkspace/cartograph/zig-out/bin/cartograph"] },
+      "probe": {
+        "kind": "cmd",
+        "argv": [
+          "~/Dev/ClaudeWorkspace/cartograph/zig-out/bin/surveyor",
+          "status"
+        ],
+        "timeout_ms": 6000
+      },
+      "remark_keys": [
+        "flows.total",
+        "flows.listeners",
+        "exposure.internet"
+      ],
+      "open": {
+        "kind": "app",
+        "argv": [
+          "~/Dev/ClaudeWorkspace/cartograph/zig-out/bin/cartograph"
+        ]
+      },
       "signpost": "~/Dev/ClaudeWorkspace/cartograph/CARTOGRAPH-STATION.html",
-      "verbs": ["status", "snapshot", "serve", "--schema"]
+      "verbs": [
+        "status",
+        "snapshot",
+        "serve",
+        "--schema"
+      ]
     },
     {
       "id": "sysmon",
@@ -102,8 +204,18 @@
       "district": "Instruments",
       "line": "GTK3 system monitor (pre-standard: no CLI surface yet)",
       "path": "~/Dev/ClaudeWorkspace/sysmon",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/sysmon" },
-      "open": { "kind": "app", "argv": ["python3", "sysmon.py"], "cwd": "~/Dev/ClaudeWorkspace/sysmon" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/sysmon"
+      },
+      "open": {
+        "kind": "app",
+        "argv": [
+          "python3",
+          "sysmon.py"
+        ],
+        "cwd": "~/Dev/ClaudeWorkspace/sysmon"
+      }
     },
     {
       "id": "groundskeeper",
@@ -113,10 +225,19 @@
       "district": "Instruments",
       "line": "Estate survey — drives weighed, rooms walked, moving-day plans",
       "path": "~/Dev/ClaudeWorkspace/groundskeeper",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/groundskeeper" },
-      "open": { "kind": "app", "argv": ["python3", "groundskeeper.py"], "cwd": "~/Dev/ClaudeWorkspace/groundskeeper" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/groundskeeper"
+      },
+      "open": {
+        "kind": "app",
+        "argv": [
+          "python3",
+          "groundskeeper.py"
+        ],
+        "cwd": "~/Dev/ClaudeWorkspace/groundskeeper"
+      }
     },
-
     {
       "id": "wisp",
       "name": "Wisp",
@@ -126,8 +247,14 @@
       "line": "Household-spirit REPL — sessionless --json turns through the local models",
       "path": "~/Dev/ClaudeWorkspace/wisp",
       "bin": "~/Dev/ClaudeWorkspace/wisp/target/release/wisp",
-      "probe": { "kind": "file", "path": "~/Dev/ClaudeWorkspace/wisp/target/release/wisp" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/wisp" },
+      "probe": {
+        "kind": "file",
+        "path": "~/Dev/ClaudeWorkspace/wisp/target/release/wisp"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/wisp"
+      },
       "note": "probe is existence-only: a wisp turn invokes the LLM, too heavy for a heartbeat"
     },
     {
@@ -138,9 +265,23 @@
       "district": "Workshop",
       "line": "llama.cpp substrate — server, watcher, VRAM arbitration",
       "path": "~/Nexus/💻HomePC/🧰LocalModels",
-      "probe": { "kind": "cmd", "argv": ["~/Nexus/💻HomePC/🧰LocalModels/status.sh", "--json"], "timeout_ms": 6000 },
-      "remark_keys": ["server.state", "mode", "vram.used_pct"],
-      "open": { "kind": "path", "path": "~/Nexus/💻HomePC/🧰LocalModels" }
+      "probe": {
+        "kind": "cmd",
+        "argv": [
+          "~/Nexus/💻HomePC/🧰LocalModels/status.sh",
+          "--json"
+        ],
+        "timeout_ms": 6000
+      },
+      "remark_keys": [
+        "server.state",
+        "mode",
+        "vram.used_pct"
+      ],
+      "open": {
+        "kind": "path",
+        "path": "~/Nexus/💻HomePC/🧰LocalModels"
+      }
     },
     {
       "id": "sdgen",
@@ -151,9 +292,23 @@
       "line": "stable-diffusion.cpp one-shots — VRAM frees itself on exit",
       "path": "~/Nexus/💻HomePC/🧰LocalModels",
       "bin": "~/Nexus/💻HomePC/🧰LocalModels/sdgen",
-      "probe": { "kind": "cmd", "argv": ["~/Nexus/💻HomePC/🧰LocalModels/sdgen", "models", "--json"], "timeout_ms": 6000 },
-      "open": { "kind": "path", "path": "~/Nexus/💻HomePC/🧰LocalModels" },
-      "verbs": ["models", "schema"]
+      "probe": {
+        "kind": "cmd",
+        "argv": [
+          "~/Nexus/💻HomePC/🧰LocalModels/sdgen",
+          "models",
+          "--json"
+        ],
+        "timeout_ms": 6000
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Nexus/💻HomePC/🧰LocalModels"
+      },
+      "verbs": [
+        "models",
+        "schema"
+      ]
     },
     {
       "id": "nexus-model",
@@ -163,9 +318,25 @@
       "district": "Workshop",
       "line": "Nexus switches her own substrate — list / current / switch",
       "bin": "~/.hermes/skills/model-palette/scripts/nexus-model",
-      "probe": { "kind": "cmd", "argv": ["~/.hermes/skills/model-palette/scripts/nexus-model", "current", "--json"], "timeout_ms": 6000 },
-      "remark_keys": ["alias", "default"],
-      "verbs": ["list", "current", "switch", "schema"]
+      "probe": {
+        "kind": "cmd",
+        "argv": [
+          "~/.hermes/skills/model-palette/scripts/nexus-model",
+          "current",
+          "--json"
+        ],
+        "timeout_ms": 6000
+      },
+      "remark_keys": [
+        "alias",
+        "default"
+      ],
+      "verbs": [
+        "list",
+        "current",
+        "switch",
+        "schema"
+      ]
     },
     {
       "id": "form-lab",
@@ -175,8 +346,14 @@
       "district": "Workshop",
       "line": "The mirror room — compiler, critique, recipes (Nexus's)",
       "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🪞Form-Diffusion-Lab",
-      "probe": { "kind": "dir", "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🪞Form-Diffusion-Lab" },
-      "open": { "kind": "path", "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🪞Form-Diffusion-Lab" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🪞Form-Diffusion-Lab"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🪞Form-Diffusion-Lab"
+      }
     },
     {
       "id": "sudoplz",
@@ -187,8 +364,14 @@
       "line": "sudo password vault (first --json retrofit candidate — standard §3)",
       "path": "~/Dev/ClaudeWorkspace/sudoplz",
       "bin": "~/.local/bin/sudoplz",
-      "probe": { "kind": "file", "path": "~/.local/bin/sudoplz" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/sudoplz" }
+      "probe": {
+        "kind": "file",
+        "path": "~/.local/bin/sudoplz"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/sudoplz"
+      }
     },
     {
       "id": "blossom-shell",
@@ -199,8 +382,14 @@
       "line": "Reversible bash⇄zsh switcher, themed to the desktop",
       "path": "~/Dev/ClaudeWorkspace/blossom-shell",
       "bin": "~/Dev/ClaudeWorkspace/blossom-shell/blossom-shell",
-      "probe": { "kind": "file", "path": "~/Dev/ClaudeWorkspace/blossom-shell/blossom-shell" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/blossom-shell" }
+      "probe": {
+        "kind": "file",
+        "path": "~/Dev/ClaudeWorkspace/blossom-shell/blossom-shell"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/blossom-shell"
+      }
     },
     {
       "id": "blossom-chat",
@@ -210,8 +399,55 @@
       "district": "Workshop",
       "line": "GTK4 chat over the local stack (its agent surface is the :8109 bridge)",
       "path": "~/Dev/ClaudeWorkspace/blossom-chat",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/blossom-chat" },
-      "open": { "kind": "app", "argv": ["bash", "run.sh"], "cwd": "~/Dev/ClaudeWorkspace/blossom-chat" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/blossom-chat"
+      },
+      "open": {
+        "kind": "app",
+        "argv": [
+          "bash",
+          "run.sh"
+        ],
+        "cwd": "~/Dev/ClaudeWorkspace/blossom-chat"
+      }
+    },
+    {
+      "id": "greenhouse",
+      "name": "Greenhouse",
+      "glyph": "🌿",
+      "kind": "tool",
+      "district": "Workshop",
+      "line": "the setup system — grows a minimal Mint into this machine (installer · doctor · manual)",
+      "path": "~/Dev/ClaudeWorkspace/SetupScripts",
+      "bin": "~/.local/bin/greenhouse",
+      "probe": {
+        "kind": "cmd",
+        "argv": [
+          "greenhouse",
+          "doctor",
+          "--json"
+        ],
+        "timeout_ms": 30000
+      },
+      "remark_keys": [
+        "failed"
+      ],
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/SetupScripts"
+      },
+      "signpost": "~/Dev/ClaudeWorkspace/SetupScripts/README.md",
+      "verbs": [
+        "doctor",
+        "docs",
+        "keys",
+        "pair",
+        "sync",
+        "bundle",
+        "rebind-tpm",
+        "schema"
+      ]
     },
     {
       "id": "hermes-bridge",
@@ -220,7 +456,11 @@
       "kind": "service",
       "district": "Workshop",
       "line": "OpenAI-compatible loopback bridge over the local models",
-      "probe": { "kind": "http", "url": "http://127.0.0.1:8109/v1/models", "timeout_ms": 3000 }
+      "probe": {
+        "kind": "http",
+        "url": "http://127.0.0.1:8109/v1/models",
+        "timeout_ms": 3000
+      }
     },
     {
       "id": "station-helper",
@@ -230,7 +470,11 @@
       "district": "Workshop",
       "line": "The hands behind the map's buttons (loopback :9123)",
       "path": "~/Dev/ClaudeWorkspace/NexusFormStationWork",
-      "probe": { "kind": "http", "url": "http://127.0.0.1:9123/ping", "timeout_ms": 3000 }
+      "probe": {
+        "kind": "http",
+        "url": "http://127.0.0.1:9123/ping",
+        "timeout_ms": 3000
+      }
     },
     {
       "id": "ollama",
@@ -239,9 +483,12 @@
       "kind": "service",
       "district": "Workshop",
       "line": "System-wide LLM runner (loopback :11434)",
-      "probe": { "kind": "http", "url": "http://127.0.0.1:11434/api/version", "timeout_ms": 3000 }
+      "probe": {
+        "kind": "http",
+        "url": "http://127.0.0.1:11434/api/version",
+        "timeout_ms": 3000
+      }
     },
-
     {
       "id": "pkm",
       "name": "PKM",
@@ -250,8 +497,14 @@
       "district": "Library",
       "line": "Knowledge-base restructure pipeline",
       "path": "~/Dev/ClaudeWorkspace/PKM",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/PKM" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/PKM" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/PKM"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/PKM"
+      }
     },
     {
       "id": "bookmarks",
@@ -261,8 +514,14 @@
       "district": "Library",
       "line": "Browser bookmark corpus + shiori",
       "path": "~/Dev/ClaudeWorkspace/bookmarks",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/bookmarks" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/bookmarks" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/bookmarks"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/bookmarks"
+      }
     },
     {
       "id": "puzzlin",
@@ -272,8 +531,14 @@
       "district": "Library",
       "line": "Brain-wiring dataset + viewers",
       "path": "~/Dev/ClaudeWorkspace/puzzlinData",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/puzzlinData" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/puzzlinData/brain_wiring.html" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/puzzlinData"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/puzzlinData/brain_wiring.html"
+      }
     },
     {
       "id": "centogram",
@@ -283,8 +548,14 @@
       "district": "Library",
       "line": "Fans-also-like discovery — bridge_finder feeds the map's DISCOVER tab",
       "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🎵SpotifyCentogram",
-      "probe": { "kind": "dir", "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🎵SpotifyCentogram" },
-      "open": { "kind": "path", "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🎵SpotifyCentogram" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🎵SpotifyCentogram"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Nexus/🛠️TheWorkshop/📁Projects/🎵SpotifyCentogram"
+      }
     },
     {
       "id": "obsidian",
@@ -294,10 +565,15 @@
       "district": "Library",
       "line": "Vault migration + management notes",
       "path": "~/Dev/ClaudeWorkspace/ObsidianManagement",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/ObsidianManagement" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/ObsidianManagement" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/ObsidianManagement"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/ObsidianManagement"
+      }
     },
-
     {
       "id": "holo-eye",
       "name": "Holographic Eye",
@@ -306,8 +582,14 @@
       "district": "Arcade",
       "line": "Glass cockpit for Hermes holographic memory (spec-first; PLAN.md is source)",
       "path": "~/Dev/ClaudeWorkspace/HolographicViewer",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/HolographicViewer" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/HolographicViewer/PLAN.md" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/HolographicViewer"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/HolographicViewer/PLAN.md"
+      }
     },
     {
       "id": "localgen",
@@ -317,8 +599,14 @@
       "district": "Arcade",
       "line": "TTS · music · avatar rigs",
       "path": "~/Dev/ClaudeWorkspace/LocalGeneration",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/LocalGeneration" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/LocalGeneration" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/LocalGeneration"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/LocalGeneration"
+      }
     },
     {
       "id": "gaming",
@@ -328,8 +616,14 @@
       "district": "Arcade",
       "line": "lemmings · porkCRAFT · zoombinis",
       "path": "~/Dev/ClaudeWorkspace/gaming",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/gaming" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/gaming" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/gaming"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/gaming"
+      }
     },
     {
       "id": "iphone",
@@ -339,8 +633,14 @@
       "district": "Arcade",
       "line": "Retro device revival project",
       "path": "~/Dev/ClaudeWorkspace/iphone4s-retro",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/iphone4s-retro" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/iphone4s-retro" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/iphone4s-retro"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/iphone4s-retro"
+      }
     },
     {
       "id": "thorium",
@@ -350,19 +650,52 @@
       "district": "Arcade",
       "line": "Browser config — the agent surface is CDP on :9223 (thorium skill)",
       "path": "~/Dev/ClaudeWorkspace/Thorium",
-      "probe": { "kind": "dir", "path": "~/Dev/ClaudeWorkspace/Thorium" },
-      "open": { "kind": "path", "path": "~/Dev/ClaudeWorkspace/Thorium" }
+      "probe": {
+        "kind": "dir",
+        "path": "~/Dev/ClaudeWorkspace/Thorium"
+      },
+      "open": {
+        "kind": "path",
+        "path": "~/Dev/ClaudeWorkspace/Thorium"
+      }
     }
   ],
   "skill_mirrors": [
-    { "claude": "concourse", "hermes": "station/concourse" },
-    { "claude": "phosphor", "hermes": "station/phosphor" },
-    { "claude": "sudoplz-sudo-bash", "hermes": "sudoplz-sudo" },
-    { "claude": "ben-default-license", "hermes": "ben-default-license" },
-    { "claude": "thorium", "hermes": "browsing-beside-ben" },
-    { "claude": "folder-management-user-preferences", "hermes": "file-placement" },
-    { "claude": "fi-ti-source-vision-development", "hermes": "fi-ti-source-vision-development" },
-    { "claude": "ben-ui-design", "hermes": "html-default" },
-    { "claude": "mmx-cli", "hermes": "mmx-cli" }
+    {
+      "claude": "concourse",
+      "hermes": "station/concourse"
+    },
+    {
+      "claude": "phosphor",
+      "hermes": "station/phosphor"
+    },
+    {
+      "claude": "sudoplz-sudo-bash",
+      "hermes": "sudoplz-sudo"
+    },
+    {
+      "claude": "ben-default-license",
+      "hermes": "ben-default-license"
+    },
+    {
+      "claude": "thorium",
+      "hermes": "browsing-beside-ben"
+    },
+    {
+      "claude": "folder-management-user-preferences",
+      "hermes": "file-placement"
+    },
+    {
+      "claude": "fi-ti-source-vision-development",
+      "hermes": "fi-ti-source-vision-development"
+    },
+    {
+      "claude": "ben-ui-design",
+      "hermes": "html-default"
+    },
+    {
+      "claude": "mmx-cli",
+      "hermes": "mmx-cli"
+    }
   ]
 }
