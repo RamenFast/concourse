@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Concourse
+GenericName=Station Hub
+Comment=The station's shared hall — every project and agent surface in one room
+Exec=concourse
+TryExec=concourse
+Icon=concourse
+Terminal=false
+Categories=Utility;System;Monitor;
+Keywords=station;hub;agents;nexus;board;estate;
+StartupWMClass=concourse

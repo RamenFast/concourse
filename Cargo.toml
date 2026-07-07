@@ -1,0 +1,40 @@
+[package]
+name = "concourse"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "The station's shared hall — one hub where Ben and every agent see and reach the whole estate"
+
+# `cargo generate-rpm` ready for release day (phosphor's pattern); until a
+# release, `make install` places the same assets user-level.
+[package.metadata.generate-rpm]
+name = "concourse"
+summary = "Human+agent hub for the station"
+assets = [
+  { source = "target/release/concourse", dest = "/usr/bin/concourse", mode = "755" },
+  { source = "packaging/concourse.svg", dest = "/usr/share/icons/hicolor/scalable/apps/concourse.svg", mode = "644" },
+  { source = "packaging/concourse-256.png", dest = "/usr/share/icons/hicolor/256x256/apps/concourse.png", mode = "644" },
+  { source = "packaging/concourse.desktop", dest = "/usr/share/applications/concourse.desktop", mode = "644" },
+  { source = "LICENSE", dest = "/usr/share/doc/concourse/copyright", mode = "644" },
+]
+
+[[bin]]
+name = "concourse"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+sha2 = "0.10"
+egui = "0.33"
+eframe = { version = "0.33", default-features = false, features = [
+  "accesskit",      # the a11y floor
+  "default_fonts",
+  "glow",           # GL backend — light, llvmpipe-friendly for headless verify
+  "wayland",
+  "x11",
+] }
+
+[profile.release]
+lto = "thin"

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🏛 CONCOURSE-STATION — signpost</title>
+<style>
+  :root{
+    --plane:#1c1016; --surface:#281821; --surface2:#33212c;
+    --ink:#f5eaef; --ink2:#c9b0bc; --muted:#917986;
+    --line:rgba(244,233,238,.15); --line-strong:rgba(244,233,238,.32);
+    --accent:#ec8fac; --ok:#87d787; --amber:#ffaf00;
+    --stone:#3b2631; --stone-hi:#553948; --stone-lo:#1d1117;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --plane:#f3e6e6; --surface:#fcf4f3; --surface2:#f6e9e9;
+      --ink:#2b2128; --ink2:#5f4f57; --muted:#9c8890;
+      --line:rgba(43,33,40,.16); --line-strong:rgba(43,33,40,.30);
+      --accent:#c85a7c; --stone:#e7dad9; --stone-hi:#fffafa; --stone-lo:#c9b6b8; }
+  }
+  *{box-sizing:border-box; border-radius:0 !important;}
+  body{margin:0; background:var(--plane); color:var(--ink);
+    font:14.5px/1.55 system-ui, "Segoe UI", sans-serif; padding:28px 16px 60px;}
+  main{max-width:780px; margin:0 auto;}
+  .frame{background:var(--surface); border:1px solid var(--line-strong); padding:18px 20px; margin:0 0 14px;}
+  h1{font:600 21px/1.2 ui-monospace, "JetBrains Mono", monospace; margin:0 0 4px; letter-spacing:.06em;}
+  h2{font:600 13px/1.2 ui-monospace, monospace; color:var(--accent); letter-spacing:.14em; margin:0 0 10px;}
+  p{margin:.45em 0; color:var(--ink2);} strong{color:var(--ink);}
+  code, pre{font:12.5px/1.6 ui-monospace, "JetBrains Mono", monospace; color:var(--ink);}
+  pre{background:var(--surface2); border:1px solid var(--line); padding:10px 12px; overflow-x:auto; margin:.6em 0;}
+  table{border-collapse:collapse; width:100%; font-size:13px; margin:.4em 0;}
+  td,th{border:1px solid var(--line); padding:5px 9px; text-align:left; color:var(--ink2);}
+  th{font:600 11px ui-monospace,monospace; letter-spacing:.1em; color:var(--muted);}
+  td:first-child{color:var(--ink); font-family:ui-monospace,monospace; white-space:nowrap;}
+  .lamp{color:var(--ok);} .warn{color:var(--amber);}
+  .carve{display:inline-block; background:var(--stone); padding:7px 14px; margin:4px 8px 4px 0;
+    border-top:1px solid var(--stone-hi); border-left:1px solid var(--stone-hi);
+    border-bottom:1px solid var(--stone-lo); border-right:1px solid var(--stone-lo);
+    font:600 12.5px ui-monospace,monospace; color:var(--ink); text-decoration:none;}
+  a{color:var(--accent);} .sig{color:var(--muted); font-size:12px; margin-top:18px;}
+</style>
+</head>
+<body>
+<main>
+  <div class="frame">
+    <h1>🏛 CONCOURSE</h1>
+    <p><strong>The station's shared hall.</strong> One hub where Ben and every agent system see
+    the same estate and reach every tool the same way — a first-party GUI for the humans, the
+    same verbs as JSON for the agents, both renderers over one core. Raised 2026-07-07
+    (Claude Fable 5 + Ben). Rust + egui, GPLv3.</p>
+    <span class="carve">$ concourse</span>
+    <span class="carve">menu › Concourse</span>
+    <span class="carve">$ concourse status --json</span>
+  </div>
+
+  <div class="frame">
+    <h2>THE SURFACES</h2>
+    <table>
+      <tr><th>surface</th><th>who</th><th>what</th></tr>
+      <tr><td>GUI (the hall)</td><td>Ben</td><td>departures board · district bays with buttons · 🗄 cabinet · 🎓 skills · 📒 asks · 🩺 doctor · ⟳ refresh stone</td></tr>
+      <tr><td>concourse status</td><td>both</td><td>every node probed live, one shot (pretty on a TTY, envelope in a pipe)</td></tr>
+      <tr><td>run / open / probe / node</td><td>agents</td><td>reach any registered tool by name — no memorized paths</td></tr>
+      <tr><td>doctor</td><td>both</td><td>the convention enforced: probes, envelopes, branch law, governance, mirrors</td></tr>
+      <tr><td>schema</td><td>agents</td><td>the whole contract, machine-readable, envelope-carrying (ruling R5)</td></tr>
+    </table>
+  </div>
+
+  <div class="frame">
+    <h2>THE LAW IT SERVES</h2>
+    <p><span class="lamp">●</span> <strong>~/AGENTS.md</strong> — the filing cabinet: Ben's
+    system governance, sealed 444, agents read &amp; follow, never edit.</p>
+    <p><span class="lamp">●</span> <strong>~/Dev/ClaudeWorkspace/AGENT-CLI-STANDARD.md</strong> —
+    the agent-first CLI standard (Station Convention, promoted) with the live audit + rulings R1–R8.</p>
+    <p><span class="warn">◐</span> Registry is data: <code>~/.config/concourse/registry.json</code> —
+    add a node, the board grows it. Skills: <code>~/.claude/skills/concourse</code> ↔
+    <code>~/.hermes/skills/station/concourse</code> (mirrors sync on Ben's ping only).</p>
+  </div>
+
+  <div class="frame">
+    <h2>FIRST-DAY RECEIPTS</h2>
+    <pre>30 nodes probed in ~210 ms · doctor: 53 pass · 7 warn · 0 fail
+found on day one: phosphor ×13 branches (house law says ≤1) ·
+surveyor envelope drift (ts_ms/proto_version → rulings R1/R2) ·
+wisp binary missing though the map said shipped → rebuilt, claim true again</pre>
+    <p class="sig">The turtle asks, the fox watches, the human speaks. Truest, smallest next
+    steps. <code>additionalProperties: false</code> ☂️</p>
+  </div>
+</main>
+</body>
+</html>
