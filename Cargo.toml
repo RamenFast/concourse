@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "The station's shared hall — one hub where Ben and every agent see and reach the whole estate"
+repository = "https://github.com/RamenFast/concourse"
 
 # `cargo generate-rpm` ready for release day (phosphor's pattern); until a
 # release, `make install` places the same assets user-level.

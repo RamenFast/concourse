@@ -21,10 +21,7 @@ when resolved, never deleted.*
 5. **Refresh overlap.** Auto-refresh (120 s) and a manual REFRESH can overlap; probes are
    idempotent and the map write is last-wins, so harm is bounded — but a generation counter
    would make stale results drop cleanly. *(robustness)*
-6. **phosphor branch sprawl (found by doctor #1):** 13 local branches besides master violate
-   the new §4 law. Deleting branches is destructive — **Ben's word needed**, then an agent can
-   prune in one pass. *(estate hygiene, escalated)*
-7. **sudoplz --json retrofit** is the standard's named first patch (§3 work list). Small,
+6. **sudoplz --json retrofit** is the standard's named first patch (§3 work list). Small,
    high-value; do it as its own wave with its own verify. *(estate work)*
 8. **Registry seed vs config drift.** `assets/registry.json` (repo) seeds
    `~/.config/concourse/registry.json` once; later seed improvements won't reach an existing
@@ -44,3 +41,6 @@ when resolved, never deleted.*
 
 - ~~wisp binary missing while STATION-MAP said shipped~~ → rebuilt 2026-07-07 (`cargo build
   --release` in wisp/), map row now carries its check via `concourse probe wisp`.
+- ~~phosphor branch sprawl (doctor finding #1, escalated)~~ → **Ben ruled 2026-07-07: leave
+  them** — the 13 existing branches are grandfathered; the ≤1-branch law governs new work.
+  The doctor's warn on phosphor is thus expected, not actionable.
