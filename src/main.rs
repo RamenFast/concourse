@@ -5,12 +5,14 @@
 //! both renderers over one core. Bare `concourse` opens the hall.
 
 mod asks;
+mod attention;
 mod doctor;
 mod envelope;
 mod gui;
 mod probe;
 mod registry;
 mod schema;
+mod services;
 mod skills;
 mod util;
 mod verbs;
@@ -30,11 +32,16 @@ usage:
   concourse skills [--json]     claude/hermes skill estate + mirror drift
   concourse asks [add TEXT [--by NAME]] [--json]   the asks ledger
   concourse cabinet [--full] [--json]              the governance doc
+  concourse attention [scan|edges] [--json]        the estate's doc-link index
+  concourse services [--user|--system] [--json]    systemd services & timers, both scopes
+  concourse jobs [--json]       agent-dispatch job ledger
+  concourse job report ID ok|fail [--note TEXT]    how a dispatched agent reports back
+  concourse job dispatch UNIT enable|disable [--scope system|user] [--harness NAME]
   concourse schema              the machine-readable contract
   concourse gui                 open the hall explicitly
 
 exit codes: 0 ok · 2 unavailable · 3 bad arguments · 4 runtime
-the law: ~/AGENTS.md · the standard: ~/Dev/ClaudeWorkspace/AGENT-CLI-STANDARD.md";
+the law: ~/Dev/ClaudeWorkspace/AGENTS.md · the standard: ~/Dev/ClaudeWorkspace/AGENT-CLI-STANDARD.md";
 
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
@@ -104,6 +111,10 @@ fn main() {
         "doctor" => verbs::cmd_doctor(&reg, json),
         "skills" => verbs::cmd_skills(&reg, json),
         "asks" => verbs::cmd_asks(&reg, rest, json),
+        "attention" => verbs::cmd_attention(rest, json),
+        "services" => verbs::cmd_services(rest, json),
+        "jobs" => verbs::cmd_jobs(json),
+        "job" => verbs::cmd_job(rest, json),
         "map" => verbs::cmd_open(&reg, "station", json),
         other => verbs::bad_args(
             &format!("unknown verb `{other}`"),

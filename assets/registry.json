@@ -15,14 +15,14 @@
       "kind": "page",
       "district": "Town Hall",
       "line": "Ben's governance doc — binding on every agent, edited by Ben alone",
-      "path": "~/AGENTS.md",
+      "path": "~/Dev/ClaudeWorkspace/AGENTS.md",
       "probe": {
         "kind": "file",
-        "path": "~/AGENTS.md"
+        "path": "~/Dev/ClaudeWorkspace/AGENTS.md"
       },
       "open": {
         "kind": "path",
-        "path": "~/AGENTS.md"
+        "path": "~/Dev/ClaudeWorkspace/AGENTS.md"
       }
     },
     {
@@ -95,6 +95,10 @@
         "skills",
         "asks",
         "cabinet",
+        "attention",
+        "services",
+        "jobs",
+        "job",
         "schema"
       ]
     },

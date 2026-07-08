@@ -49,7 +49,7 @@ fn disk_free_bytes() -> Option<u64> {
 }
 
 pub fn governance_summary() -> serde_json::Value {
-    let path = util::home().join("AGENTS.md");
+    let path = util::cabinet_path();
     let present = path.is_file();
     let mut readonly = false;
     let mut sha12 = String::new();
@@ -429,9 +429,9 @@ pub fn cmd_asks(reg: &Registry, rest: &[String], json: bool) -> ! {
 }
 
 pub fn cmd_cabinet(full: bool, json: bool) -> ! {
-    let path = util::home().join("AGENTS.md");
+    let path = util::cabinet_path();
     if !path.is_file() {
-        let e = "~/AGENTS.md is missing — the filing cabinet is the house's law";
+        let e = "~/Dev/ClaudeWorkspace/AGENTS.md is missing — the filing cabinet is the house's law";
         let fix = "restore it from git or ask Ben; see also `concourse doctor`";
         if json {
             emit_and_exit(envelope::err(e, fix), EXIT_UNAVAILABLE);
@@ -477,6 +477,280 @@ pub fn cmd_cabinet(full: bool, json: bool) -> ! {
         println!("  read it: concourse open cabinet   (or --full here)");
     }
     std::process::exit(EXIT_OK);
+}
+
+// ── attention (the estate's doc-link index) ────────────────────────────────
+pub fn cmd_attention(rest: &[String], json: bool) -> ! {
+    match rest.first().map(String::as_str) {
+        Some("scan") => match crate::attention::scan() {
+            Ok(st) => {
+                if json {
+                    emit_and_exit(envelope::ok(serde_json::to_value(&st).unwrap_or(json!({}))), EXIT_OK);
+                }
+                println!(
+                    "{}  {} docs · {} link pairs · {} refs · {}ms",
+                    strong("attention index rebuilt"),
+                    st.docs,
+                    st.link_pairs,
+                    st.refs_total,
+                    st.elapsed_ms
+                );
+                println!("  {}", dim(&st.db));
+                std::process::exit(EXIT_OK);
+            }
+            Err(e) => runtime_err(&e, "check ~/.local/share is writable", json),
+        },
+        Some("edges") => match crate::attention::load_graph() {
+            Ok(g) => {
+                let subdirs = rest.iter().any(|a| a == "--subdirs");
+                let fg = crate::attention::folder_graph(&g, subdirs);
+                if json {
+                    emit_and_exit(
+                        envelope::ok(json!({
+                            "scanned_at": g.scanned_at,
+                            "folders": serde_json::to_value(&fg.folders).unwrap_or(json!([])),
+                            "edges": fg.edges.iter().map(|e| json!({
+                                "a": fg.folders[e.a].key, "b": fg.folders[e.b].key,
+                                "a_to_b": e.n_ab, "b_to_a": e.n_ba,
+                                "mutual": e.n_ab > 0 && e.n_ba > 0,
+                            })).collect::<Vec<_>>(),
+                        })),
+                        EXIT_OK,
+                    );
+                }
+                println!("{}  (scanned {})", strong("attention edges — folder level"), dim(&g.scanned_at));
+                for e in fg.edges.iter().take(40) {
+                    let (a, b) = (&fg.folders[e.a], &fg.folders[e.b]);
+                    let arrow = if e.n_ab > 0 && e.n_ba > 0 { "<-->" } else if e.n_ab > 0 { "-->" } else { "<--" };
+                    println!(
+                        "  {:<28} {} {:<28} {}",
+                        a.key,
+                        arrow,
+                        b.key,
+                        dim(&format!("{}·{}", e.n_ab, e.n_ba))
+                    );
+                }
+                std::process::exit(EXIT_OK);
+            }
+            Err(e) => runtime_err(&e, "run `concourse attention scan` first", json),
+        },
+        None => match crate::attention::load_graph() {
+            Ok(g) => {
+                if json {
+                    emit_and_exit(
+                        envelope::ok(json!({
+                            "scanned_at": g.scanned_at,
+                            "docs": g.docs.len(),
+                            "links": g.links.len(),
+                            "db": crate::attention::db_path().to_string_lossy(),
+                            "workflow": "~/Dev/ClaudeWorkspace/concourse/docs/ATTENTION-WORKFLOW.md",
+                        })),
+                        EXIT_OK,
+                    );
+                }
+                println!(
+                    "{}  {} docs · {} link pairs · scanned {}",
+                    strong("the attention index"),
+                    g.docs.len(),
+                    g.links.len(),
+                    dim(&g.scanned_at)
+                );
+                println!("  db {}", dim(&crate::attention::db_path().to_string_lossy()));
+                println!("  refresh: concourse attention scan · workflow: docs/ATTENTION-WORKFLOW.md");
+                std::process::exit(EXIT_OK);
+            }
+            Err(e) => {
+                let fix = "run `concourse attention scan` to build it";
+                if json {
+                    emit_and_exit(envelope::err(&e, fix), EXIT_UNAVAILABLE);
+                }
+                envelope::human_err_exit(&e, fix, EXIT_UNAVAILABLE);
+            }
+        },
+        Some(other) => bad_args(
+            &format!("unknown attention subverb `{other}`"),
+            "concourse attention [scan|edges] [--json]",
+            json,
+        ),
+    }
+}
+
+// ── systemd services + the job ledger ──────────────────────────────────────
+pub fn cmd_services(rest: &[String], json: bool) -> ! {
+    let want_user = rest.iter().any(|a| a == "--user");
+    let want_system = rest.iter().any(|a| a == "--system");
+    let scopes: Vec<bool> = match (want_user, want_system) {
+        (true, false) => vec![true],
+        (false, true) => vec![false],
+        _ => vec![false, true],
+    };
+    let mut units = Vec::new();
+    let mut errors = Vec::new();
+    for user in scopes {
+        match crate::services::list_units(user) {
+            Ok(mut u) => units.append(&mut u),
+            Err(e) => errors.push(e),
+        }
+    }
+    if units.is_empty() && !errors.is_empty() {
+        runtime_err(&errors.join("; "), "is systemd running? `systemctl --version`", json);
+    }
+    let jobs = crate::services::list_jobs();
+    if json {
+        emit_and_exit(
+            envelope::ok(json!({
+                "units": units.iter().map(|u| {
+                    let last = crate::services::latest_for(&jobs, &u.name, &u.scope);
+                    json!({
+                        "name": u.name, "scope": u.scope, "description": u.description,
+                        "active": u.active, "sub": u.sub, "enabled": u.enabled,
+                        "last_job": last.map(|j| crate::services::job_json(&j)),
+                    })
+                }).collect::<Vec<_>>(),
+                "warnings": errors,
+            })),
+            EXIT_OK,
+        );
+    }
+    println!("{}", strong("systemd through the hall — services & timers"));
+    for u in &units {
+        let lamp = match (u.active.as_str(), u.sub.as_str()) {
+            ("failed", _) | (_, "failed") => paint("38;5;167", "✗"),
+            ("active", _) => paint("38;5;114", "●"),
+            _ => paint("38;5;245", "·"),
+        };
+        println!(
+            " {} {:<44} {:<9} {:<9} {}",
+            lamp,
+            u.name.chars().take(44).collect::<String>(),
+            u.enabled.chars().take(9).collect::<String>(),
+            u.active,
+            dim(&format!("[{}]", u.scope)),
+        );
+    }
+    for e in &errors {
+        println!(" {} {}", paint("38;5;214", "⚠"), dim(e));
+    }
+    std::process::exit(EXIT_OK);
+}
+
+pub fn cmd_jobs(json: bool) -> ! {
+    let jobs = crate::services::list_jobs();
+    if json {
+        emit_and_exit(
+            envelope::ok(json!({
+                "dir": crate::services::jobs_dir().to_string_lossy(),
+                "jobs": jobs.iter().map(crate::services::job_json).collect::<Vec<_>>(),
+            })),
+            EXIT_OK,
+        );
+    }
+    if jobs.is_empty() {
+        println!("no jobs yet — the services panel (or `concourse job dispatch …`) starts one");
+    }
+    for j in &jobs {
+        let mark = match j.status.as_str() {
+            "ok" => paint("38;5;114", "●"),
+            "fail" => paint("38;5;167", "✗"),
+            _ => paint("38;5;214", "⟳"),
+        };
+        println!(
+            " {} {} {:<9} {} {} ({}) {}",
+            mark,
+            dim(&j.ts.chars().take(16).collect::<String>()),
+            j.status,
+            j.action,
+            strong(&j.unit),
+            j.harness,
+            dim(&j.note.chars().take(48).collect::<String>()),
+        );
+    }
+    std::process::exit(EXIT_OK);
+}
+
+pub fn cmd_job(rest: &[String], json: bool) -> ! {
+    match rest.first().map(String::as_str) {
+        Some("report") => {
+            let (Some(id), Some(status)) = (rest.get(1), rest.get(2)) else {
+                bad_args(
+                    "job report needs an id and a status",
+                    "concourse job report <id> ok|fail [--note \"…\"]",
+                    json,
+                );
+            };
+            if status != "ok" && status != "fail" {
+                bad_args(
+                    &format!("status must be ok or fail, got `{status}`"),
+                    "concourse job report <id> ok|fail [--note \"…\"]",
+                    json,
+                );
+            }
+            let mut note = String::new();
+            let mut it = rest[3..].iter();
+            while let Some(w) = it.next() {
+                if w == "--note" {
+                    if let Some(v) = it.next() {
+                        note = v.clone();
+                    }
+                }
+            }
+            match crate::services::report(id, status, &note) {
+                Ok(job) => {
+                    if json {
+                        emit_and_exit(envelope::ok(json!({ "job": crate::services::job_json(&job) })), EXIT_OK);
+                    }
+                    println!("job {} → {} ({})", job.id, job.status, job.unit);
+                    std::process::exit(EXIT_OK);
+                }
+                Err(e) => runtime_err(&e, "concourse jobs --json lists real ids", json),
+            }
+        }
+        Some("dispatch") => {
+            let (Some(unit), Some(action)) = (rest.get(1), rest.get(2)) else {
+                bad_args(
+                    "job dispatch needs a unit and an action",
+                    "concourse job dispatch <unit> enable|disable [--scope system|user] [--harness claude|hermes|opencode]",
+                    json,
+                );
+            };
+            let mut scope = "system".to_string();
+            let mut harness = "claude".to_string();
+            let mut it = rest[3..].iter();
+            while let Some(w) = it.next() {
+                match w.as_str() {
+                    "--scope" => {
+                        if let Some(v) = it.next() {
+                            scope = v.clone();
+                        }
+                    }
+                    "--harness" => {
+                        if let Some(v) = it.next() {
+                            harness = v.clone();
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            match crate::services::dispatch(unit, &scope, action, &harness) {
+                Ok(job) => {
+                    if json {
+                        emit_and_exit(envelope::ok(json!({ "job": crate::services::job_json(&job) })), EXIT_OK);
+                    }
+                    println!(
+                        "dispatched {} to {} {} ({}) — log {}",
+                        job.harness, job.action, job.unit, job.scope, job.log
+                    );
+                    std::process::exit(EXIT_OK);
+                }
+                Err(e) => runtime_err(&e, "check the harness is installed and the unit name is exact", json),
+            }
+        }
+        _ => bad_args(
+            "job needs a subverb",
+            "concourse job report <id> ok|fail [--note …] · concourse job dispatch <unit> enable|disable [--scope …] [--harness …]",
+            json,
+        ),
+    }
 }
 
 // ── error helpers ───────────────────────────────────────────────────────────

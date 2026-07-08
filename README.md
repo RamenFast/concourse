@@ -4,21 +4,24 @@
 same estate and reach every tool the same way. A first-party GUI for the humans, the same
 verbs as JSON for the agents — both renderers over one core, so neither can drift.*
 
-Built 2026-07-07 by Claude Fable 5 with Ben. Rust + egui. GPLv3.
+Built 2026-07-07 by Claude Fable 5 with Ben. Rust + egui + SQLite. GPLv3.
 Part of the station: [`NexusFormStationWork`](../NexusFormStationWork/) is the bench;
 [`AGENT-CLI-STANDARD.md`](../AGENT-CLI-STANDARD.md) is the law it enforces;
-`~/AGENTS.md` is the filing cabinet it shows.
+[`~/Dev/ClaudeWorkspace/AGENTS.md`](../AGENTS.md) is the filing cabinet it shows.
 
 ## The hall (GUI)
 
-`concourse` (or the **Concourse** menu entry) opens one window:
+`concourse` (or the **Concourse** menu entry) opens one window with two renders —
+**🏛 hall** (departures + bays) and **🧭 estate** (the attention map) — switched in the top bar:
 
 | room | what |
 |---|---|
 | **DEPARTURES** | live board of every tool & service — probed concurrently, semantic lamps, click a row for its inspector |
 | **the bays** | every project/app as a card, grouped by district (Town Hall · Instruments · Workshop · Library · Arcade) with open / folder / signpost buttons |
+| **🧭 estate map** | the bays as a top-down folder structure with attention flow: arrows where `.md`/`.html` docs reference each other (orange = Claude, pink = Nexus, grey = opencode/misc; `-->` one-way weaker, `<-->` mutual stronger, brightness scales with connection count; archives never indexed). Collapsible control panel: reindex, view options, hide folders (ghosts optional), agent legend, connections list. Every folder opens in a terminal — the manual agent entry ([workflow](docs/ATTENTION-WORKFLOW.md)) |
+| **⚙ services** | systemd services & timers, both scopes — enable/disable **dispatches an agent** (claude / hermes / opencode, default remembered) that does the work and reports back; green = managed as asked, red = could not continue (agent log one click away) |
 | **🗄 cabinet** | the governance doc, rendered read-only with its seal, hash, and tended date |
-| **🎓 skills** | the Claude/Hermes skill estate and mirror drift (report-only — syncing waits for Ben's ping) |
+| **🎓 skills** | the Claude/Hermes skill estate and mirror drift — category folders on the left (📁 opens, name filters), vertical-resize fixed |
 | **📒 asks** | the asks ledger — every unique ask, remembered |
 | **🩺 doctor** | the standard, enforced: probes, envelopes, branch law, governance wiring |
 
@@ -40,6 +43,12 @@ concourse doctor            # audit the estate against the standard
 concourse skills            # skill mirrors + drift
 concourse asks add "…" --by ben
 concourse cabinet --full    # the governance doc + its seal
+concourse attention scan    # rebuild the estate's doc-link index (SQLite, ~5 s)
+concourse attention edges   # folder-level attention flow — the map's arrows
+concourse services --user   # systemd units with enablement + last dispatch job
+concourse job dispatch foo.service enable --scope user --harness claude
+concourse job report j…-… ok --note "verified"   # how a dispatched agent reports back
+concourse jobs              # the dispatch ledger
 concourse schema            # the full contract, machine-readable
 ```
 
@@ -66,6 +75,13 @@ make install     # cargo build --release + binary → ~/.local/bin + .desktop + 
 
 - Probes run concurrently with per-node timeouts; a dead node degrades to its honest state
   (`missing`/`unavailable`/`error`), never breaks the board.
+- The attention index is deterministic heuristics (markdown links, wikilinks, href/src,
+  bare `~/` paths) — counts are honest approximations of attention, not ground truth;
+  the scanner's roots and rules live in `src/attention.rs` and the agent workflow in
+  [`docs/ATTENTION-WORKFLOW.md`](docs/ATTENTION-WORKFLOW.md).
+- Service dispatch was verified end-to-end on day one: a self-test dispatch on a
+  nonexistent unit had the claude agent investigate, refuse to fabricate a unit file,
+  and report `fail` with the fix named — exactly the designed behavior.
 - `doctor` found real things on day one: phosphor's 13 extra branches, surveyor's envelope
   drift (rulings R1/R2), wisp's missing binary. That's the point.
 - Known soft spots live in [`docs/SERIOUS-TODOS.md`](docs/SERIOUS-TODOS.md) — the

@@ -4,6 +4,7 @@
 //! apps with buttons), the filing cabinet, the skills rack, the asks
 //! ledger, the doctor. Same core as the CLI — this is just the human render.
 
+mod estate;
 pub mod theme;
 mod views;
 
@@ -35,12 +36,46 @@ pub fn run() -> Result<(), String> {
 struct UiConfig {
     theme: String,
     reduce_motion: bool,
+    #[serde(default)]
+    view: String, // "hall" | "estate"
+    #[serde(default = "d_true")]
+    estate_panel_open: bool,
+    #[serde(default)]
+    estate_show_subdirs: bool,
+    #[serde(default = "d_true")]
+    estate_only_connected: bool,
+    #[serde(default = "d_true")]
+    estate_ghosts: bool,
+    #[serde(default)]
+    estate_hidden: Vec<String>,
+    #[serde(default)]
+    default_harness: String, // who gets dispatched for systemd jobs
+}
+
+fn d_true() -> bool {
+    true
 }
 
 impl Default for UiConfig {
     fn default() -> Self {
-        UiConfig { theme: "blossom_dark".into(), reduce_motion: false }
+        UiConfig {
+            theme: "blossom_dark".into(),
+            reduce_motion: false,
+            view: "hall".into(),
+            estate_panel_open: true,
+            estate_show_subdirs: false,
+            estate_only_connected: true,
+            estate_ghosts: true,
+            estate_hidden: Vec::new(),
+            default_harness: "claude".into(),
+        }
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ViewMode {
+    Hall,
+    Estate,
 }
 
 fn ui_config_path() -> std::path::PathBuf {
@@ -90,12 +125,41 @@ pub struct App {
 
     pub cabinet: Option<CabinetDoc>,
     pub skills: Option<crate::skills::SkillsReport>,
+    pub skill_sel: String, // rack/category filter in the skills rack ("all", "claude", "hermes/station", …)
     pub asks: Vec<crate::asks::Ask>,
     pub ask_input: String,
     pub ask_by: String,
     pub doctor: Arc<Mutex<Option<crate::doctor::Report>>>,
     pub doctor_running: Arc<AtomicUsize>,
     pub toast: Option<(String, Instant)>,
+
+    // ── the estate map ──
+    pub view: ViewMode,
+    pub estate: Option<crate::attention::GraphData>,
+    pub estate_folders: Option<crate::attention::FolderGraph>,
+    pub estate_err: Option<String>,
+    pub estate_load_tried: bool,
+    pub estate_scan_running: Arc<AtomicUsize>,
+    pub estate_scan_result: Arc<Mutex<Option<Result<crate::attention::GraphData, String>>>>,
+    pub estate_panel_open: bool,
+    pub estate_show_subdirs: bool,
+    pub estate_only_connected: bool,
+    pub estate_ghosts: bool,
+    pub estate_hidden: std::collections::HashSet<String>,
+    pub estate_popouts: Vec<String>,
+    pub estate_hover: Option<usize>,
+    pub estate_edge_sel: Option<usize>,
+
+    pub default_harness: String, // claude | hermes | opencode — remembered dispatch choice
+
+    // ── systemd services ──
+    pub show_services: bool,
+    pub services_user_scope: bool, // true = user units, false = system
+    pub services_filter: String,
+    pub services: Arc<Mutex<Option<Result<Vec<crate::services::Unit>, String>>>>,
+    pub services_loading: Arc<AtomicUsize>,
+    pub jobs: Vec<crate::services::Job>,
+    pub jobs_polled_at: Option<Instant>,
 }
 
 /// Widen glyph coverage from the system's own fonts (loaded from disk, not
@@ -153,19 +217,64 @@ impl App {
             show_doctor: false,
             cabinet: None,
             skills: None,
+            skill_sel: "all".into(),
             asks: Vec::new(),
             ask_input: String::new(),
             ask_by: "ben".into(),
             doctor: Arc::new(Mutex::new(None)),
             doctor_running: Arc::new(AtomicUsize::new(0)),
             toast: None,
+            view: if cfg.view == "estate" { ViewMode::Estate } else { ViewMode::Hall },
+            estate: None,
+            estate_folders: None,
+            estate_err: None,
+            estate_load_tried: false,
+            estate_scan_running: Arc::new(AtomicUsize::new(0)),
+            estate_scan_result: Arc::new(Mutex::new(None)),
+            estate_panel_open: cfg.estate_panel_open,
+            estate_show_subdirs: cfg.estate_show_subdirs,
+            estate_only_connected: cfg.estate_only_connected,
+            estate_ghosts: cfg.estate_ghosts,
+            estate_hidden: cfg.estate_hidden.iter().cloned().collect(),
+            estate_popouts: Vec::new(),
+            estate_hover: None,
+            estate_edge_sel: None,
+            default_harness: if cfg.default_harness.is_empty() { "claude".into() } else { cfg.default_harness.clone() },
+            show_services: false,
+            services_user_scope: true,
+            services_filter: String::new(),
+            services: Arc::new(Mutex::new(None)),
+            services_loading: Arc::new(AtomicUsize::new(0)),
+            jobs: Vec::new(),
+            jobs_polled_at: None,
         };
         app.refresh(&cc.egui_ctx);
         app
     }
 
     pub fn save_theme(&self) {
-        save_ui_config(&UiConfig { theme: self.pal.id.to_string(), reduce_motion: self.reduce_motion });
+        self.save_prefs();
+    }
+
+    /// Persist everything the hall remembers between sessions (theme, view,
+    /// estate-map options, hidden folders, the default dispatch harness).
+    pub fn save_prefs(&self) {
+        let mut hidden: Vec<String> = self.estate_hidden.iter().cloned().collect();
+        hidden.sort();
+        save_ui_config(&UiConfig {
+            theme: self.pal.id.to_string(),
+            reduce_motion: self.reduce_motion,
+            view: match self.view {
+                ViewMode::Hall => "hall".into(),
+                ViewMode::Estate => "estate".into(),
+            },
+            estate_panel_open: self.estate_panel_open,
+            estate_show_subdirs: self.estate_show_subdirs,
+            estate_only_connected: self.estate_only_connected,
+            estate_ghosts: self.estate_ghosts,
+            estate_hidden: hidden,
+            default_harness: self.default_harness.clone(),
+        });
     }
 
     /// Probe every node on background threads; the board breathes as
@@ -210,7 +319,7 @@ impl App {
     }
 
     pub fn load_cabinet(&mut self) {
-        let path = crate::util::home().join("AGENTS.md");
+        let path = crate::util::cabinet_path();
         let bytes = std::fs::read(&path).unwrap_or_default();
         use sha2::{Digest, Sha256};
         use std::os::unix::fs::PermissionsExt;
@@ -236,6 +345,36 @@ impl App {
 
     pub fn note(&mut self, msg: impl Into<String>) {
         self.toast = Some((msg.into(), Instant::now()));
+    }
+
+    /// List units for the current scope on a background thread.
+    pub fn load_services(&mut self, ctx: &egui::Context) {
+        if self.services_loading.load(Ordering::SeqCst) > 0 {
+            return;
+        }
+        let user = self.services_user_scope;
+        let slot = Arc::clone(&self.services);
+        let loading = Arc::clone(&self.services_loading);
+        let ctx = ctx.clone();
+        loading.fetch_add(1, Ordering::SeqCst);
+        std::thread::spawn(move || {
+            let res = crate::services::list_units(user);
+            if let Ok(mut s) = slot.lock() {
+                *s = Some(res);
+            }
+            loading.fetch_sub(1, Ordering::SeqCst);
+            ctx.request_repaint();
+        });
+    }
+
+    /// Re-read the job ledger at most every 2 s while the panel is open —
+    /// this is how a dispatched agent's `concourse job report` reaches the UI.
+    pub fn poll_jobs(&mut self) {
+        let stale = self.jobs_polled_at.map(|t| t.elapsed().as_secs_f32() > 2.0).unwrap_or(true);
+        if stale {
+            self.jobs = crate::services::list_jobs();
+            self.jobs_polled_at = Some(Instant::now());
+        }
     }
 
     /// Track state changes so rows can flash gently when something moves.
@@ -270,7 +409,11 @@ impl eframe::App for App {
 
         // Esc: close the newest thing first (the Escape cascade)
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
-            if let Some(_) = self.inspectors.pop() {
+            if self.inspectors.pop().is_some() {
+            } else if self.estate_edge_sel.take().is_some() {
+            } else if self.estate_popouts.pop().is_some() {
+            } else if self.show_services {
+                self.show_services = false;
             } else if self.show_doctor {
                 self.show_doctor = false;
             } else if self.show_asks {
@@ -284,7 +427,11 @@ impl eframe::App for App {
 
         views::top_bar(self, ctx);
         views::status_strip(self, ctx);
+        if self.view == ViewMode::Estate {
+            estate::control_panel(self, ctx);
+        }
         views::central(self, ctx);
         views::windows(self, ctx);
+        estate::estate_windows(self, ctx);
     }
 }

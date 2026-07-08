@@ -96,7 +96,7 @@ pub fn run(reg: &Registry) -> Report {
             }
         }
 
-        // branch discipline (~/AGENTS.md §4): ≤ 1 branch besides master/main
+        // branch discipline (filing cabinet §4): ≤ 1 branch besides master/main
         if let Some(path) = &node.path {
             let dir = util::expand_home(path);
             if dir.join(".git").exists() {
@@ -156,7 +156,7 @@ pub fn run(reg: &Registry) -> Report {
     }
 
     // ── governance ──
-    let cabinet = util::home().join("AGENTS.md");
+    let cabinet = util::cabinet_path();
     if cabinet.is_file() {
         findings.push(f("governance", "cabinet-exists", Level::Pass, cabinet.display().to_string()));
         if let Ok(meta) = std::fs::metadata(&cabinet) {
@@ -178,7 +178,7 @@ pub fn run(reg: &Registry) -> Report {
             "governance",
             "cabinet-exists",
             Level::Fail,
-            "~/AGENTS.md is missing — the filing cabinet is the house's law",
+            "~/Dev/ClaudeWorkspace/AGENTS.md is missing — the filing cabinet is the house's law",
         ));
     }
     let claude_md = util::home().join(".claude/CLAUDE.md");
@@ -192,7 +192,7 @@ pub fn run(reg: &Registry) -> Report {
             "governance",
             "claude-always-loads",
             Level::Warn,
-            "~/.claude/CLAUDE.md does not reference ~/AGENTS.md",
+            "~/.claude/CLAUDE.md does not reference the filing cabinet (AGENTS.md)",
         )
     });
 

@@ -45,6 +45,29 @@ when resolved, never deleted.*
     relies on the `timeout` coreutil wrapping pw-record; a native duration flag would be
     cleaner. *(voice wave)*
 
+*Added 2026-07-07 (estate map + services wave):*
+
+13. **Attention counts are heuristic.** The bare-path sweep can miss paths with unquoted
+    spaces and the wikilink resolver picks same-root-then-shortest on ambiguity — honest
+    approximations, but nobody has hand-verified a sample of edges against the real docs.
+    Pick 10 edges, open the docs, count by hand. *(correctness)*
+14. **Estate map layout is static columns.** With `show subdirs` on and PKM's tree, a column
+    can get very tall; there's no zoom, and edge hit-testing happens only through the
+    connections panel (a bezier's own hover is not clickable). Fine at today's scale. *(UX)*
+15. **Only the claude dispatch path is field-verified.** The self-test proved
+    dispatch→work→report end to end with `claude -p`. `hermes chat -q` and `opencode run`
+    argv shapes are taken from their own docs/help but haven't carried a real job yet —
+    first hermes/opencode dispatch should be watched. *(behavior)*
+16. **Dispatch runs claude with `--dangerously-skip-permissions`.** Right for this
+    high-trust machine (cabinet §5) and required for headless systemctl work; revisit if
+    the security posture ever changes. *(security posture, by design)*
+17. **Services panel toggles only enabled↔disabled.** static/masked/generated units get no
+    button by design (state shown instead); start/stop/restart aren't offered yet — add if
+    Ben asks. *(scope, on purpose)*
+18. **Job ledger grows unbounded.** One json + one log per dispatch in
+    `~/.local/share/concourse/jobs/` — harmless for years at human dispatch rates, but
+    nothing prunes it. *(lifecycle)*
+
 ## Resolved
 
 - ~~wisp binary missing while STATION-MAP said shipped~~ → rebuilt 2026-07-07 (`cargo build

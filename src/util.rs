@@ -10,6 +10,57 @@ pub fn home() -> PathBuf {
     std::env::var_os("HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("/"))
 }
 
+/// The filing cabinet — Ben's governance doc. One source of truth for its
+/// location (moved from ~/AGENTS.md into the workspace, Ben's ask 2026-07-07).
+pub fn cabinet_path() -> PathBuf {
+    home().join("Dev/ClaudeWorkspace/AGENTS.md")
+}
+
+/// XDG data home for concourse (the asks ledger, the attention index, job records).
+pub fn data_dir() -> PathBuf {
+    std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home().join(".local/share"))
+        .join("concourse")
+}
+
+/// Find a binary on PATH (which-lite).
+pub fn on_path(bin: &str) -> Option<PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path) {
+        let p = dir.join(bin);
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    None
+}
+
+/// Open a terminal emulator at `dir` — $TERMINAL first, then the terminals
+/// this machine actually carries. Returns the command used.
+pub fn open_terminal(dir: &PathBuf) -> Result<String, String> {
+    if let Some(term) = std::env::var_os("TERMINAL") {
+        let t = term.to_string_lossy().into_owned();
+        spawn_detached(&[t.clone()], Some(dir))?;
+        return Ok(t);
+    }
+    let candidates: [(&str, Vec<String>); 6] = [
+        ("ghostty", vec!["ghostty".into(), format!("--working-directory={}", dir.display())]),
+        ("gnome-terminal", vec!["gnome-terminal".into(), format!("--working-directory={}", dir.display())]),
+        ("kitty", vec!["kitty".into(), "--directory".into(), dir.display().to_string()]),
+        ("foot", vec!["foot".into(), "-D".into(), dir.display().to_string()]),
+        ("konsole", vec!["konsole".into(), "--workdir".into(), dir.display().to_string()]),
+        ("xterm", vec!["xterm".into()]),
+    ];
+    for (bin, argv) in &candidates {
+        if on_path(bin).is_some() {
+            spawn_detached(argv, Some(dir))?;
+            return Ok(argv.join(" "));
+        }
+    }
+    Err("no terminal emulator found — set $TERMINAL, or install gnome-terminal/kitty/foot".into())
+}
+
 /// Expand a leading `~` to $HOME. Anything else passes through.
 pub fn expand_home(p: &str) -> PathBuf {
     if let Some(rest) = p.strip_prefix("~/") {

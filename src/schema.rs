@@ -35,6 +35,27 @@ pub fn schema() -> Value {
             "skills": { "what": "scan ~/.claude/skills and ~/.hermes/skills; report mirror pairs and drift (report only — syncing waits for Ben's ping)", "args": [], "output": { "claude": "[{name, description, path}]", "hermes": "[…]", "mirrors": "[{claude, hermes, state}]", "additionalProperties": false } },
             "asks": { "what": "the asks ledger (append-only NDJSON at ~/.local/share/concourse/asks.ndjson)", "args": ["[add <text> [--by NAME]]"], "output": { "asks": "[{ts, by, text}]", "additionalProperties": false } },
             "cabinet": { "what": "the governance doc's metadata (path, mode, sha256, mtime); --full includes the text", "args": ["[--full]"], "output": { "path": "string", "readonly": "bool", "sha256": "string", "mtime": "string", "bytes": "n", "text?": "with --full", "additionalProperties": false } },
+            "attention": {
+                "what": "the estate's doc-link index (SQLite at ~/.local/share/concourse/attention.db): which .md/.html docs point at which, archives never indexed. Bare = summary; `scan` rebuilds (deterministic, ~5 s); `edges` aggregates to folder level (the estate map's arrows). Workflow for agents: concourse repo docs/ATTENTION-WORKFLOW.md",
+                "args": ["[scan|edges]", "[--subdirs]"],
+                "output": {
+                    "summary": "{scanned_at, docs, links, db, workflow}",
+                    "scan": "{docs, link_pairs, refs_total, elapsed_ms, db, scanned_at}",
+                    "edges": "{scanned_at, folders: [{key, label, above?, path, root, agent: claude|nexus|opencode, depth, docs}], edges: [{a, b, a_to_b, b_to_a, mutual}]}",
+                    "additionalProperties": false
+                }
+            },
+            "services": {
+                "what": "systemd services & timers with enablement state, both scopes by default; each unit carries its last dispatch job if any",
+                "args": ["[--user|--system]"],
+                "output": { "units": "[{name, scope, description, active, sub, enabled, last_job?}]", "warnings": "[string]", "additionalProperties": false }
+            },
+            "jobs": { "what": "the agent-dispatch job ledger (~/.local/share/concourse/jobs/)", "args": [], "output": { "dir": "string", "jobs": "[{id, ts, unit, scope, action, harness, status: dispatched|ok|fail, note, log, reported_ts}]", "additionalProperties": false } },
+            "job": {
+                "what": "report: how a dispatched agent flips the UI green (ok) or red (fail) — REQUIRED at the end of every dispatch. dispatch: spawn a harness (claude|hermes|opencode) to enable/disable a unit and report back",
+                "args": ["report <id> ok|fail [--note TEXT]", "dispatch <unit> enable|disable [--scope system|user] [--harness NAME]"],
+                "output": { "job": "the job record", "additionalProperties": false }
+            },
             "schema": { "what": "this object", "args": [], "output": "you are reading it" },
             "gui": { "what": "launch the GUI hall (bare `concourse` does the same)", "args": [], "output": "a window" }
         },

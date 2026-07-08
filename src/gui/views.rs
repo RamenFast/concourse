@@ -30,7 +30,7 @@ fn take(s: &str, n: usize) -> String {
 }
 
 /// A carved stone control — depth for the few actions that matter.
-fn stone_button(ui: &mut egui::Ui, pal: &Palette, label: &str, size: egui::Vec2, lit: bool) -> egui::Response {
+pub(super) fn stone_button(ui: &mut egui::Ui, pal: &Palette, label: &str, size: egui::Vec2, lit: bool) -> egui::Response {
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
     let pressed = resp.is_pointer_button_down_on();
     let mix = ui.ctx().animate_bool_with_time(resp.id.with("lit"), lit || resp.hovered(), 0.15);
@@ -111,6 +111,24 @@ pub fn top_bar(app: &mut App, ctx: &egui::Context) {
             });
             ui.add_space(6.0);
             ui.horizontal(|ui| {
+                // the two renders of the hall: departures+bays, or the estate map
+                for (mode, label, hint) in [
+                    (super::ViewMode::Hall, "🏛 hall", "departures board + the bays"),
+                    (super::ViewMode::Estate, "🧭 estate", "top-down folders + attention flow"),
+                ] {
+                    let on = app.view == mode;
+                    if ui
+                        .selectable_label(on, RichText::new(label).size(13.5))
+                        .on_hover_text(hint)
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                        && !on
+                    {
+                        app.view = mode;
+                        app.save_prefs();
+                    }
+                }
+                ui.separator();
                 let toggle = |ui: &mut egui::Ui, label: &str, on: &mut bool| {
                     let r = ui.selectable_label(*on, RichText::new(label).size(13.5));
                     if r.clicked() {
@@ -122,10 +140,12 @@ pub fn top_bar(app: &mut App, ctx: &egui::Context) {
                 let mut open_skills = app.show_skills;
                 let mut open_asks = app.show_asks;
                 let mut open_doctor = app.show_doctor;
+                let mut open_services = app.show_services;
                 toggle(ui, "🗄 cabinet", &mut open_cabinet);
                 toggle(ui, "🎓 skills", &mut open_skills);
                 toggle(ui, "📒 asks", &mut open_asks);
                 toggle(ui, "🩺 doctor", &mut open_doctor);
+                toggle(ui, "⚙ services", &mut open_services);
                 if open_cabinet && app.cabinet.is_none() {
                     app.load_cabinet();
                 }
@@ -140,10 +160,15 @@ pub fn top_bar(app: &mut App, ctx: &egui::Context) {
                 if open_doctor && !app.show_doctor {
                     app.run_doctor(ctx);
                 }
+                if open_services && !app.show_services {
+                    app.load_services(ctx);
+                    app.jobs_polled_at = None; // fresh ledger on open
+                }
                 app.show_cabinet = open_cabinet;
                 app.show_skills = open_skills;
                 app.show_asks = open_asks;
                 app.show_doctor = open_doctor;
+                app.show_services = open_services;
 
                 if ui
                     .selectable_label(false, RichText::new("🗺 map").size(13.5))
@@ -246,14 +271,19 @@ pub fn central(app: &mut App, ctx: &egui::Context) {
                     ui.label(RichText::new(e).color(pal.ink_2));
                     ui.label(mono(format!("fix: {fix}"), 12.5, pal.accent));
                 }
-                Ok(_) => {
-                    egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-                        board(app, ui);
-                        ui.add_space(14.0);
-                        bays(app, ui);
-                        ui.add_space(10.0);
-                    });
-                }
+                Ok(_) => match app.view {
+                    super::ViewMode::Hall => {
+                        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                            board(app, ui);
+                            ui.add_space(14.0);
+                            bays(app, ui);
+                            ui.add_space(10.0);
+                        });
+                    }
+                    super::ViewMode::Estate => {
+                        super::estate::estate_central(app, ui);
+                    }
+                },
             }
         });
 }
@@ -480,6 +510,7 @@ pub fn windows(app: &mut App, ctx: &egui::Context) {
     skills_window(app, ctx);
     asks_window(app, ctx);
     doctor_window(app, ctx);
+    services_window(app, ctx);
 }
 
 fn inspectors(app: &mut App, ctx: &egui::Context) {
@@ -607,7 +638,7 @@ fn cabinet_window(app: &mut App, ctx: &egui::Context) {
         .default_height(520.0)
         .show(ctx, |ui| {
             if doc_missing {
-                ui.label("~/AGENTS.md could not be read — `concourse doctor` will say why.");
+                ui.label("~/Dev/ClaudeWorkspace/AGENTS.md could not be read — `concourse doctor` will say why.");
                 return;
             }
             let (path, readonly, sha12, mtime) = {
@@ -638,7 +669,7 @@ fn cabinet_window(app: &mut App, ctx: &egui::Context) {
             ui.add_space(4.0);
             ui.horizontal(|ui| {
                 if ui.button("open in editor").clicked() {
-                    let _ = crate::util::xdg_open(&crate::util::expand_home("~/AGENTS.md"));
+                    let _ = crate::util::xdg_open(&crate::util::cabinet_path());
                 }
                 if ui.button("copy path").clicked() {
                     ui.ctx().copy_text(path.clone());
@@ -656,6 +687,61 @@ fn cabinet_window(app: &mut App, ctx: &egui::Context) {
     app.show_cabinet = open;
 }
 
+/// One rack (claude/hermes): its root dir and nested categories, counted.
+struct RackView {
+    rack: &'static str,
+    root: std::path::PathBuf,
+    total: usize,
+    cats: Vec<(String, usize)>, // nested category name, skill count
+}
+
+fn rack_view(rack: &'static str, root: std::path::PathBuf, skills: &[crate::skills::SkillInfo]) -> RackView {
+    let mut cats: Vec<(String, usize)> = Vec::new();
+    for s in skills {
+        if let Some((cat, _)) = s.name.split_once('/') {
+            match cats.iter_mut().find(|(c, _)| c == cat) {
+                Some((_, n)) => *n += 1,
+                None => cats.push((cat.to_string(), 1)),
+            }
+        }
+    }
+    cats.sort_by(|a, b| a.0.cmp(&b.0));
+    RackView { rack, root, total: skills.len(), cats }
+}
+
+/// A 📁 button + selectable label — the folder opens, the name filters.
+fn cat_row(
+    ui: &mut egui::Ui,
+    pal: &Palette,
+    sel: &mut String,
+    key: &str,
+    label: &str,
+    count: usize,
+    dir: &std::path::Path,
+    indent: f32,
+) {
+    ui.horizontal(|ui| {
+        ui.add_space(indent);
+        if ui
+            .button(RichText::new("📁").size(11.5))
+            .on_hover_text(format!("open {}", dir.display()))
+            .on_hover_cursor(egui::CursorIcon::PointingHand)
+            .clicked()
+        {
+            let _ = crate::util::xdg_open(&dir.to_path_buf());
+        }
+        let active = sel == key;
+        // selected rows sit on the accent fill — ink must flip to on_accent
+        let r = ui.selectable_label(
+            active,
+            mono(format!("{label} ({count})"), 12.0, if active { pal.on_accent } else { pal.ink }),
+        );
+        if r.on_hover_cursor(egui::CursorIcon::PointingHand).clicked() {
+            *sel = if active { "all".into() } else { key.to_string() };
+        }
+    });
+}
+
 fn skills_window(app: &mut App, ctx: &egui::Context) {
     if !app.show_skills {
         return;
@@ -666,74 +752,148 @@ fn skills_window(app: &mut App, ctx: &egui::Context) {
         .id(egui::Id::new("skills"))
         .open(&mut open)
         .resizable(true)
-        .default_width(600.0)
+        .default_width(760.0)
+        .default_height(520.0)
+        .min_width(520.0)
+        .min_height(300.0)
         .show(ctx, |ui| {
             let Some(sk) = app.skills.clone() else {
                 ui.label("scanning…");
                 return;
             };
-            ui.label(
-                RichText::new("Claude and Hermes stay separate — mirrors sync only on Ben's ping. Each mirror names its source of record.")
-                    .color(pal.ink_2)
-                    .size(12.0),
-            );
-            ui.label(mono(
-                format!("{} claude · {} hermes", sk.claude.len(), sk.hermes.len()),
-                12.0,
-                pal.ink_2,
-            ));
-            ui.separator();
-            ui.label(mono("MIRRORS", 11.0, pal.muted));
-            for m in &sk.mirrors {
-                let okp = m.state == "paired";
-                ui.horizontal(|ui| {
-                    ui.label(
-                        RichText::new(if okp { "✓" } else { "⚠" })
-                            .font(FontId::monospace(12.0))
-                            .color(if okp {
-                                status_color(&pal, State::Ok)
-                            } else {
-                                status_color(&pal, State::Unavailable)
-                            }),
-                    );
-                    ui.label(mono(take(&m.claude, 36), 12.0, pal.ink));
-                    ui.label(mono("↔", 12.0, pal.muted));
-                    ui.label(mono(take(&m.hermes, 28), 12.0, pal.ink));
-                    if !okp {
-                        ui.label(mono(m.state.clone(), 11.0, status_color(&pal, State::Unavailable)));
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new("Claude and Hermes stay separate — mirrors sync only on Ben's ping.")
+                        .color(pal.ink_2)
+                        .size(12.0),
+                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button(RichText::new("rescan").size(12.0)).clicked() {
+                        if let Ok(reg) = &app.reg {
+                            app.skills = Some(crate::skills::report(&reg.skill_mirrors));
+                        }
                     }
+                    ui.label(mono(
+                        format!("{} claude · {} hermes", sk.claude.len(), sk.hermes.len()),
+                        12.0,
+                        pal.ink_2,
+                    ));
                 });
-            }
+            });
             ui.separator();
-            egui::CollapsingHeader::new(mono(format!("claude skills ({})", sk.claude.len()), 12.0, pal.ink_2))
-                .default_open(false)
-                .show(ui, |ui| {
-                    egui::ScrollArea::vertical().max_height(200.0).id_salt("csk").show(ui, |ui| {
-                        for s in &sk.claude {
-                            ui.horizontal(|ui| {
-                                ui.label(mono(take(&s.name, 34), 11.5, pal.ink));
-                                ui.label(RichText::new(take(&s.description, 60)).color(pal.muted).size(10.5));
+
+            let racks = [
+                rack_view("claude", crate::skills::claude_root(), &sk.claude),
+                rack_view("hermes", crate::skills::hermes_root(), &sk.hermes),
+            ];
+            let mut sel = app.skill_sel.clone();
+
+            // two panes fill the window — content claims all space so the
+            // window resizes freely on both axes (no hug-the-content fights)
+            let body_h = ui.available_height();
+            ui.horizontal_top(|ui| {
+                ui.set_min_height(body_h);
+                // ── left: the racks — folder icons open, names filter ──
+                ui.allocate_ui_with_layout(
+                    egui::vec2(190.0, body_h),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        ui.set_width(190.0);
+                        egui::ScrollArea::vertical()
+                            .id_salt("skcats")
+                            .auto_shrink([false, false])
+                            .show(ui, |ui| {
+                                ui.label(mono("RACKS", 10.5, pal.muted));
+                                ui.add_space(2.0);
+                                let all = sel == "all";
+                                if ui
+                                    .selectable_label(all, mono("everything", 12.0, if all { pal.on_accent } else { pal.ink }))
+                                    .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                    .clicked()
+                                {
+                                    sel = "all".into();
+                                }
+                                for rv in &racks {
+                                    ui.add_space(4.0);
+                                    cat_row(ui, &pal, &mut sel, rv.rack, rv.rack, rv.total, &rv.root, 0.0);
+                                    for (cat, n) in &rv.cats {
+                                        let key = format!("{}/{}", rv.rack, cat);
+                                        cat_row(ui, &pal, &mut sel, &key, cat, *n, &rv.root.join(cat), 14.0);
+                                    }
+                                }
                             });
-                        }
-                    });
+                    },
+                );
+                ui.separator();
+                // ── right: mirrors (unfiltered view) + the skill list ──
+                ui.vertical(|ui| {
+                    egui::ScrollArea::vertical()
+                        .id_salt("sklist")
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            if sel == "all" {
+                                ui.label(mono("MIRRORS", 10.5, pal.muted));
+                                for m in &sk.mirrors {
+                                    let okp = m.state == "paired";
+                                    ui.horizontal(|ui| {
+                                        ui.label(
+                                            RichText::new(if okp { "✓" } else { "⚠" })
+                                                .font(FontId::monospace(12.0))
+                                                .color(if okp {
+                                                    status_color(&pal, State::Ok)
+                                                } else {
+                                                    status_color(&pal, State::Unavailable)
+                                                }),
+                                        );
+                                        ui.label(mono(take(&m.claude, 34), 12.0, pal.ink));
+                                        ui.label(mono("↔", 12.0, pal.muted));
+                                        ui.label(mono(take(&m.hermes, 26), 12.0, pal.ink));
+                                        if !okp {
+                                            ui.label(mono(m.state.clone(), 11.0, status_color(&pal, State::Unavailable)));
+                                        }
+                                    });
+                                }
+                                ui.separator();
+                            }
+                            for rv in &racks {
+                                let list = if rv.rack == "claude" { &sk.claude } else { &sk.hermes };
+                                let shown: Vec<_> = list
+                                    .iter()
+                                    .filter(|s| match sel.as_str() {
+                                        "all" => true,
+                                        k if k == rv.rack => true,
+                                        k => k
+                                            .strip_prefix(&format!("{}/", rv.rack))
+                                            .is_some_and(|cat| s.name.starts_with(&format!("{cat}/"))),
+                                    })
+                                    .collect();
+                                if shown.is_empty() {
+                                    continue;
+                                }
+                                ui.add_space(4.0);
+                                ui.label(mono(format!("{} ({})", rv.rack.to_uppercase(), shown.len()), 10.5, pal.muted));
+                                for s in shown {
+                                    ui.horizontal(|ui| {
+                                        if ui
+                                            .button(RichText::new("📁").size(10.5))
+                                            .on_hover_text("open this skill's folder")
+                                            .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                            .clicked()
+                                        {
+                                            if let Some(dir) = std::path::Path::new(&s.path).parent() {
+                                                let _ = crate::util::xdg_open(&dir.to_path_buf());
+                                            }
+                                        }
+                                        ui.label(mono(take(&s.name, 34), 11.5, pal.ink));
+                                        ui.label(RichText::new(take(&s.description, 72)).color(pal.muted).size(10.5))
+                                            .on_hover_text(&s.description);
+                                    });
+                                }
+                            }
+                        });
                 });
-            egui::CollapsingHeader::new(mono(format!("hermes skills ({})", sk.hermes.len()), 12.0, pal.ink_2))
-                .default_open(false)
-                .show(ui, |ui| {
-                    egui::ScrollArea::vertical().max_height(200.0).id_salt("hsk").show(ui, |ui| {
-                        for s in &sk.hermes {
-                            ui.horizontal(|ui| {
-                                ui.label(mono(take(&s.name, 34), 11.5, pal.ink));
-                                ui.label(RichText::new(take(&s.description, 60)).color(pal.muted).size(10.5));
-                            });
-                        }
-                    });
-                });
-            if ui.button("rescan").clicked() {
-                if let Ok(reg) = &app.reg {
-                    app.skills = Some(crate::skills::report(&reg.skill_mirrors));
-                }
-            }
+            });
+            app.skill_sel = sel;
         });
     app.show_skills = open;
 }
@@ -865,6 +1025,217 @@ fn doctor_window(app: &mut App, ctx: &egui::Context) {
             }
         });
     app.show_doctor = open;
+}
+
+// ── systemd services: see everything, dispatch an agent to change it ───────
+
+fn services_window(app: &mut App, ctx: &egui::Context) {
+    if !app.show_services {
+        return;
+    }
+    app.poll_jobs(); // agents report via `concourse job report` — the ledger is the wire
+    let pal = app.pal;
+    let mut open = app.show_services;
+    egui::Window::new(RichText::new("⚙ services — systemd through the hall").strong())
+        .id(egui::Id::new("services"))
+        .open(&mut open)
+        .resizable(true)
+        .default_width(780.0)
+        .default_height(560.0)
+        .min_width(560.0)
+        .min_height(320.0)
+        .show(ctx, |ui| {
+            ui.label(
+                RichText::new("Enable/disable doesn't run systemctl blindly — it dispatches an agent that does the work with judgement and reports back. Green: managed the way you want. Red: could not continue — the agent's log says why.")
+                    .color(pal.ink_2)
+                    .size(12.0),
+            );
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                let loading = app.services_loading.load(Ordering::SeqCst) > 0;
+                for (label, user) in [("user", true), ("system", false)] {
+                    let on = app.services_user_scope == user;
+                    if ui
+                        .selectable_label(on, RichText::new(label).size(12.5))
+                        .on_hover_cursor(egui::CursorIcon::PointingHand)
+                        .clicked()
+                        && !on
+                    {
+                        app.services_user_scope = user;
+                        if let Ok(mut s) = app.services.lock() {
+                            *s = None;
+                        }
+                        app.load_services(ctx);
+                    }
+                }
+                ui.separator();
+                ui.add(
+                    egui::TextEdit::singleline(&mut app.services_filter)
+                        .hint_text("filter units…")
+                        .desired_width(180.0),
+                );
+                if ui.add_enabled(!loading, egui::Button::new(RichText::new("⟳ refresh").size(12.0))).clicked() {
+                    app.load_services(ctx);
+                }
+                if loading {
+                    ui.spinner();
+                }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let before = app.default_harness.clone();
+                    egui::ComboBox::from_id_salt("dispatch-harness")
+                        .selected_text(mono(app.default_harness.clone(), 12.0, pal.accent))
+                        .width(104.0)
+                        .show_ui(ui, |ui| {
+                            for h in crate::services::HARNESSES {
+                                ui.selectable_value(&mut app.default_harness, h.to_string(), h);
+                            }
+                        });
+                    if app.default_harness != before {
+                        app.save_prefs(); // the default is remembered
+                    }
+                    ui.label(mono("dispatch via", 11.0, pal.muted));
+                });
+            });
+            ui.separator();
+
+            let units = app.services.lock().ok().and_then(|s| s.clone());
+            let body_h = (ui.available_height() - 130.0).max(120.0);
+            match units {
+                None => {
+                    ui.label(RichText::new("reading systemd…").color(pal.muted));
+                }
+                Some(Err(e)) => {
+                    ui.label(RichText::new(&e).color(status_color(&pal, State::Error)).size(12.0));
+                    ui.label(mono("fix: is systemd running? systemctl --version", 11.5, pal.accent));
+                }
+                Some(Ok(units)) => {
+                    let filter = app.services_filter.to_lowercase();
+                    let shown: Vec<&crate::services::Unit> = units
+                        .iter()
+                        .filter(|u| {
+                            filter.is_empty()
+                                || u.name.to_lowercase().contains(&filter)
+                                || u.description.to_lowercase().contains(&filter)
+                        })
+                        .collect();
+                    ui.label(mono(
+                        format!("{} units ({} scope) · {} shown", units.len(), if app.services_user_scope { "user" } else { "system" }, shown.len()),
+                        11.0,
+                        pal.muted,
+                    ));
+                    egui::ScrollArea::vertical()
+                        .id_salt("svc-list")
+                        .max_height(body_h)
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            for u in shown {
+                                service_row(app, ui, u);
+                            }
+                        });
+                }
+            }
+            ui.separator();
+            // ── recent jobs: the dispatch ledger, newest first ──
+            egui::CollapsingHeader::new(mono(format!("jobs ({})", app.jobs.len()), 12.0, pal.ink_2))
+                .default_open(!app.jobs.is_empty())
+                .show(ui, |ui| {
+                    egui::ScrollArea::vertical().id_salt("job-list").max_height(120.0).show(ui, |ui| {
+                        for j in app.jobs.iter().rev().take(30) {
+                            let (mark, col) = job_mark(&pal, &j.status);
+                            ui.horizontal(|ui| {
+                                ui.label(RichText::new(mark).font(FontId::monospace(12.0)).color(col));
+                                ui.label(mono(j.ts.chars().take(16).collect::<String>(), 10.5, pal.muted));
+                                ui.label(mono(format!("{} {}", j.action, take(&j.unit, 30)), 11.5, pal.ink));
+                                ui.label(mono(format!("[{}]", j.harness), 10.5, pal.accent));
+                                if !j.note.is_empty() {
+                                    ui.label(RichText::new(take(&j.note, 40)).color(pal.ink_2).size(10.5))
+                                        .on_hover_text(&j.note);
+                                }
+                                if ui.link(mono("log", 10.5, pal.muted)).clicked() {
+                                    let _ = crate::util::xdg_open(&std::path::PathBuf::from(&j.log));
+                                }
+                            });
+                        }
+                    });
+                });
+        });
+    app.show_services = open;
+}
+
+fn job_mark(pal: &Palette, status: &str) -> (&'static str, Color32) {
+    match status {
+        "ok" => ("●", status_color(pal, State::Ok)),
+        "fail" => ("✗", status_color(pal, State::Error)),
+        _ => ("⟳", status_color(pal, State::Unavailable)),
+    }
+}
+
+fn service_row(app: &mut App, ui: &mut egui::Ui, u: &crate::services::Unit) {
+    let pal = app.pal;
+    let lamp = match (u.active.as_str(), u.sub.as_str()) {
+        ("failed", _) | (_, "failed") => ("✗", status_color(&pal, State::Error)),
+        ("active", _) => ("●", status_color(&pal, State::Ok)),
+        _ => ("·", pal.muted),
+    };
+    let last = crate::services::latest_for(&app.jobs, &u.name, &u.scope);
+    ui.horizontal(|ui| {
+        ui.label(RichText::new(lamp.0).font(FontId::monospace(12.0)).color(lamp.1));
+        ui.label(mono(take(&u.name, 38), 12.0, pal.ink)).on_hover_text(&u.name);
+        cell(ui, 64.0, mono(
+            u.enabled.clone(),
+            10.5,
+            match u.enabled.as_str() {
+                "enabled" | "enabled-runtime" => status_color(&pal, State::Ok),
+                "masked" => status_color(&pal, State::Error),
+                _ => pal.muted,
+            },
+        ));
+        cell(ui, 92.0, mono(format!("{}/{}", u.active, u.sub), 10.5, pal.ink_2));
+
+        // the dispatch buttons — an agent goes and does it, then reports
+        let action = match u.enabled.as_str() {
+            "enabled" | "enabled-runtime" => Some("disable"),
+            "disabled" => Some("enable"),
+            _ => None, // static/masked/generated units aren't enable-toggled
+        };
+        if let Some(action) = action {
+            let dispatched = last.as_ref().is_some_and(|j| j.status == "dispatched");
+            if ui
+                .add_enabled(!dispatched, egui::Button::new(RichText::new(action).size(11.0)))
+                .on_hover_text(format!("dispatch {} to {action} this unit", app.default_harness))
+                .clicked()
+            {
+                let scope = if app.services_user_scope { "user" } else { "system" };
+                match crate::services::dispatch(&u.name, scope, action, &app.default_harness) {
+                    Ok(job) => {
+                        app.note(format!("dispatched {} to {action} {}", job.harness, u.name));
+                        app.jobs_polled_at = None; // show the new job immediately
+                    }
+                    Err(e) => app.note(e),
+                }
+            }
+        } else {
+            cell(ui, 52.0, mono("—", 10.5, pal.muted));
+        }
+        // the report lamp: green = managed as asked · red = see the agent's log
+        if let Some(j) = &last {
+            let (mark, col) = job_mark(&pal, &j.status);
+            let hover = match j.status.as_str() {
+                "ok" => format!("{} — {}", j.note.trim(), "managed the way you asked"),
+                "fail" => format!("could not continue: {} — click for the agent's log", j.note),
+                _ => format!("{} is on it — click for the live log", j.harness),
+            };
+            if ui
+                .link(RichText::new(mark).font(FontId::monospace(13.0)).color(col))
+                .on_hover_text(hover)
+                .clicked()
+            {
+                let _ = crate::util::xdg_open(&std::path::PathBuf::from(&j.log));
+            }
+        }
+        ui.label(RichText::new(take(&u.description, 44)).color(pal.muted).size(10.5))
+            .on_hover_text(&u.description);
+    });
 }
 
 // ── md-lite: enough rendering for the cabinet to read with dignity ─────────
